@@ -7,25 +7,7 @@ A small ETL and schema utility for ingesting county-specific voter files from Go
 - An Airflow DAG (and an ETL DAG) to run the ingestion/cleaning and load to BigQuery
 - Utility and orchestration scripts for running locally or in Google Cloud Composer
 
-Important: This project works with highly sensitive personal data (voter records). Read and follow the Security & Privacy section before running anything.
-
-Table of contents
-- Project overview
-- Repository layout
-- Quick start (local)
-- Environment variables / .env
-- Running the components
-  - main.py utilities
-  - schema.py (BigQuery table creation)
-  - voter_data_etl.py (Airflow DAG)
-  - voter_data_dag.py (liveness / orchestration)
-- GCP & IAM requirements
-- Development notes, TODOs and improvements
-- Security & privacy considerations
-- Contributing
-- License
-
-Project overview
+### Project overview
 ----------------
 This repo automates key parts of a pipeline that:
 1. Downloads a DOCX file describing the fixed-width or delimited voter file layout from GCS.
@@ -34,25 +16,7 @@ This repo automates key parts of a pipeline that:
 4. Cleans and uploads the CSV to Cloud Storage and imports it to BigQuery.
 5. Provides schema definitions and table creation helpers for BigQuery, including partitioning/clustering and an example hashing helper for searchable hashed fields.
 
-Repository layout
------------------
-- `main.py` — Utilities:
-  - Authenticate to GCS
-  - Download a DOCX file from a bucket
-  - Convert DOCX layout table to CSV
-  - Convert delimited TXT files to CSV (auto-detects delimiter \t, |, or ,)
-- `schema.py` — BigQuery schema creation:
-  - `create_voter_registry_table(dataset_id)`
-  - `create_voting_history_table(dataset_id)`
-  - `hash_columns_for_search(fields_to_hash)` (returns expression string for hashing)
-- `voter_data_etl.py` — Airflow DAG:
-  - DAG to clean CSV for BigQuery, upload cleaned file to GCS, and load to BigQuery
-  - Uses `PythonOperator`, `LocalFilesystemToGCSOperator`, and `BigQueryInsertJobOperator`
-- `voter_data_dag.py` — Additional DAG showing orchestration/liveness tasks and example of ExecuteAirflowCommand usage
-- `Makefile` — convenience: `make install`, `make run` (relies on `.venv` path & requirements.txt)
-- `README.md` — (this file)
-
-Quick start (local)
+### Quick start (local)
 -------------------
 Prerequisites:
 - Python 3.8+ (3.9 or 3.10 recommended)
@@ -60,16 +24,6 @@ Prerequisites:
   - Cloud Storage bucket for the source files
   - BigQuery dataset for tables
 - A service account with the required roles (see GCP & IAM Requirements)
-- `git` and access to the repository
-
-Suggested packages (put in `requirements.txt`):
-- python-docx
-- pandas
-- python-dotenv
-- google-cloud-storage
-- google-cloud-bigquery
-- apache-airflow (or the relevant Google Cloud Composer operators / packages when deployed)
-(Adjust versions for your environment; the repo's Makefile expects `requirements.txt` to exist.)
 
 Local setup:
 1. Clone the repo:
@@ -82,25 +36,18 @@ Local setup:
    make install
 3. Create a `.env` file in the repository root with the necessary environment variables (see below).
 
-Environment variables (.env)
+### Environment variables (.env)
 ----------------------------
-Add a `.env` file or set environment variables in your runtime environment. Variables used across scripts:
-
-- PROJECT_ID — GCP project id
-- BUCKET_NAME — Cloud Storage bucket name (for downloads/uploads)
-- BUCKET_URI — URI used in DAGs (e.g., gs://my-bucket)
-- DATASET_ID — BigQuery dataset id where tables will be created
-- TABLE_ID — BigQuery table to load into (used in DAG)
-- Additional variables might be required depending on deployment: e.g., AIRFLOW_HOME, COMPOSER instance names, etc.
-
 Example `.env`
+```
 PROJECT_ID=my-gcp-project
 BUCKET_NAME=my-bucket
 BUCKET_URI=gs://my-bucket
 DATASET_ID=my_dataset
 TABLE_ID=voter_registry
+```
 
-Running the components
+### Running the components
 ----------------------
 
 main.py utilities
@@ -132,7 +79,7 @@ voter_data_etl.py (Airflow DAG)
 voter_data_dag.py
 - Additional DAG demonstrating a liveness prober and orchestration example that calls a bash script and triggers an ExecuteAirflowCommand to start a pipeline.
 
-GCP & IAM requirements
+### GCP & IAM requirements
 ----------------------
 Service account for running this pipeline should have:
 - Storage: roles/storage.objectViewer (or roles/storage.admin for uploads)
@@ -140,31 +87,7 @@ Service account for running this pipeline should have:
 - Composer/Cloud Composer: roles/composer.worker (as appropriate)
 - If you use separate service accounts for Composer, ensure they have appropriate access to buckets & datasets.
 
-Security & privacy
-------------------
-This repository deals with personally-identifiable information (PII). Important best practices:
-- Never commit production credentials or sample PII to the repo.
-- Use least-privilege service accounts and rotate keys.
-- Encrypt data at rest in GCS (default GCP SSE enabled) and in BigQuery (customer-managed keys if required).
-- Minimize local copies of files; clean up temporary files (`/tmp/cleaned_data.csv`) after use.
-- Mask, redact, or pseudonymize personally-identifiable fields when storing or sharing.
-- Ensure your project and pipeline comply with relevant laws and policies (FERPA, state laws, etc.) and your organization's data governance.
 
-Development notes, TODOs and improvements
----------------------------------------
-- Add a `requirements.txt` with pinned versions.
-- Add unit tests for parsing functions (`voter_file_layout_docx_to_csv`, `voter_data_txt_to_csv`) and integration tests for BigQuery load jobs (can be mocked).
-- Improve error handling and logging (replace print() with structured logging).
-- Consider streaming ingestion for large files rather than downloading whole files.
-- Hashing helper currently returns SQL expressions — integrate into a transformation step that writes hashed search columns to BigQuery.
-- Add CI (GitHub Actions) to lint and run tests.
-
-Contributing
-------------
-- Open issues for bugs or feature requests.
-- For code changes, open a PR with tests and a clear description.
-- Please avoid committing secrets or raw production data.
-
-Contact / Author
+### Contact / Author
 ----------------
 Repository owner: @jessielwhite
